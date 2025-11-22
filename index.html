@@ -1,215 +1,139 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Snake Game</title>
+<meta charset="UTF-8" />
+<title> Memory Game (APPLE AND BANANAES) </title>
+
 <style>
     body {
-        background: #111;
+        font-family: Arial;
+        background: #f4f4f4;
         display: flex;
-        flex-direction: column;
         justify-content: center;
         align-items: center;
         height: 100vh;
-        margin: 0;
-        font-family: Arial, sans-serif;
-        color: white;
-        user-select: none;
     }
 
-    #gameBox {
-        width: 400px;
-        height: 400px;
-        background: #222;
+    .game {
         display: grid;
-        grid-template-columns: repeat(20, 20px);
-        grid-template-rows: repeat(20, 20px);
-        border: 3px solid #0f0;
+        grid-template-columns: repeat(4, 100px);
+        gap: 15px;
     }
 
-    .snake {
-        background: #0f0;
+    .card {
+        width: 100px;
+        height: 100px;
+        perspective: 600px;
+        cursor: pointer;
+        position: relative;
     }
 
-    .food {
-        background: red;
+    .inner {
+        width: 100%;
+        height: 100%;
+        transition: transform 0.4s;
+        transform-style: preserve-3d;
+        position: relative;
     }
 
-    #score {
-        font-size: 24px;
-        margin-bottom: 10px;
-    }
-
-    /* Mobile Controls */
-    #controls {
-        margin-top: 20px;
-        display: grid;
-        grid-template-columns: 80px 80px 80px;
-        grid-template-rows: 80px 80px;
-        gap: 10px;
-    }
-
-    .btn {
-        background: #333;
-        border: 2px solid #0f0;
+    .front, .back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        backface-visibility: hidden;
         border-radius: 10px;
-        font-size: 24px;
         display: flex;
-        justify-content: center;
         align-items: center;
+        justify-content: center;
+        font-size: 2rem;
     }
 
-    .btn:active {
-        background: #0f0;
-        color: black;
+    .front {
+        background: #4e6ef2;
+        color: white;
     }
 
-    #up { grid-column: 2; }
-    #down { grid-column: 2; grid-row: 2; }
-    #left { grid-column: 1; grid-row: 2; }
-    #right { grid-column: 3; grid-row: 2; }
+    .back {
+        background: white;
+        border: 2px solid #4e6ef2;
+        transform: rotateY(180deg);
+    }
 
-    .members-list {
-           
-            top: 50px;
-            left: 30px;
-            background: rgba(176, 0, 230, 0.927);
-            padding: 10px 15px;
-            border-radius: 8px;
-            font-family: "Press Start 2P", sans-serif;
-            font-size: 14px;
-            z-index: 1000;
-        }
+    .flipped .inner {
+        transform: rotateY(180deg);
+    }
 
-        .members-list {
-            margin-top: 40px;
-            background: rgba(93, 7, 221, 0.452);
-            padding: 10px 15px;
-            border-radius: 8px;
-            font-family: "Press Start 2P", sans-serif;
-            font-size: 14px;
-        }
+    /* Match (correct) */
+    .correct .back {
+        border: 3px solid #18c469;
+    }
 
-        .members-list h3 {
-            margin: 0 0 5px 0;
-            font-size: 12px;
-            color: #fff;
-        }
-
-        .members-list ul {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            color: #fff; 
-        }
-
-        .members-list li {
-            margin-bottom: 3px;
-            color: #fff;
-        }
-
+    /* Wrong pair */
+    .wrong .back {
+        border: 3px solid #e63946;
+    }
 </style>
 </head>
 <body>
 
-<div id="score">Score: 0</div>
-<div id="gameBox"></div>
-
-<!-- Mobile Controls -->
-<div id="controls">
-    <div class="btn" id="up">⬆</div>
-    <div class="btn" id="left">⬅</div>
-    <div class="btn" id="down">⬇</div>
-    <div class="btn" id="right">➡</div>
-</div>
+<div class="game" id="game"></div>
 
 <script>
-const gameBox = document.getElementById("gameBox");
-const scoreBox = document.getElementById("score");
+const emojis = ["🍎","🍎","🍌","🍌","🍇","🍇","🍒","🍒"];
+emojis.sort(() => Math.random() - 0.5);
 
-let snake = [{x: 10, y: 10}];
-let dx = 1, dy = 0;
-let food = {x: 5, y: 5};
-let score = 0;
+const game = document.getElementById("game");
+let flippedCards = [];
+let lock = false;
 
-function drawGame() {
-    gameBox.innerHTML = "";
+// Create cards
+emojis.forEach((emoji) => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+        <div class="inner">
+            <div class="front"></div>
+            <div class="back">${emoji}</div>
+        </div>
+    `;
 
-    snake.forEach(s => {
-        const div = document.createElement("div");
-        div.style.gridColumnStart = s.x;
-        div.style.gridRowStart = s.y;
-        div.classList.add("snake");
-        gameBox.appendChild(div);
-    });
-
-    const foodDiv = document.createElement("div");
-    foodDiv.style.gridColumnStart = food.x;
-    foodDiv.style.gridRowStart = food.y;
-    foodDiv.classList.add("food");
-    gameBox.appendChild(foodDiv);
-}
-
-function moveSnake() {
-    const head = {x: snake[0].x + dx, y: snake[0].y + dy};
-
-    // Wall collision
-    if (head.x < 1 || head.x > 20 || head.y < 1 || head.y > 20) {
-        alert("Game Over! Score: " + score);
-        location.reload();
-    }
-
-    // Self collision
-    for (let s of snake) {
-        if (s.x === head.x && s.y === head.y) {
-            alert("Game Over! Score: " + score);
-            location.reload();
-        }
-    }
-
-    snake.unshift(head);
-
-    // Eat food
-    if (head.x === food.x && head.y === food.y) {
-        score++;
-        scoreBox.innerText = "Score: " + score;
-        food = {
-            x: Math.floor(Math.random() * 20) + 1,
-            y: Math.floor(Math.random() * 20) + 1
-        };
-    } else {
-        snake.pop();
-    }
-}
-
-// Keyboard controls
-document.addEventListener("keydown", e => {
-    if (e.key === "ArrowUp" && dy !== 1) { dx = 0; dy = -1; }
-    if (e.key === "ArrowDown" && dy !== -1) { dx = 0; dy = 1; }
-    if (e.key === "ArrowLeft" && dx !== 1) { dx = -1; dy = 0; }
-    if (e.key === "ArrowRight" && dx !== -1) { dx = 1; dy = 0; }
+    card.onclick = () => flip(card, emoji);
+    game.appendChild(card);
 });
 
-// Touch controls
-document.getElementById("up").onclick = () => { if (dy !== 1) { dx = 0; dy = -1; } };
-document.getElementById("down").onclick = () => { if (dy !== -1) { dx = 0; dy = 1; } };
-document.getElementById("left").onclick = () => { if (dx !== 1) { dx = -1; dy = 0; } };
-document.getElementById("right").onclick = () => { if (dx !== -1) { dx = 1; dy = 0; } };
+function flip(card, emoji) {
+    if (lock || card.classList.contains("flipped")) return;
 
-setInterval(() => {
-    moveSnake();
-    drawGame();
-}, 150);
+    card.classList.add("flipped");
+    flippedCards.push({ card, emoji });
+
+    if (flippedCards.length === 2) checkMatch();
+}
+
+function checkMatch() {
+    lock = true;
+    const [c1, c2] = flippedCards;
+
+    if (c1.emoji === c2.emoji) {
+        // Correct
+        c1.card.classList.add("correct");
+        c2.card.classList.add("correct");
+        flippedCards = [];
+        lock = false;
+    } else {
+        // Wrong
+        c1.card.classList.add("wrong");
+        c2.card.classList.add("wrong");
+
+        setTimeout(() => {
+            c1.card.classList.remove("flipped", "wrong");
+            c2.card.classList.remove("flipped", "wrong");
+            flippedCards = [];
+            lock = false;
+        }, 800);
+    }
+}
 </script>
-
-    <div class="members-list">
-            <h3>Members:</h3>
-            <ul>
-                        <li>Roxas nicole ann</li>
-                        <li>deniega romel</li>
-                        <li>magallanes myra</li>
-            </ul>
-        </div>
 
 </body>
 </html>
