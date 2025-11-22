@@ -2,16 +2,25 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title> Memory Game (APPLE AND BANANAES) </title>
+<title>Memory Game</title>
 
 <style>
     body {
         font-family: Arial;
         background: #f4f4f4;
         display: flex;
+        flex-direction: column;
         justify-content: center;
         align-items: center;
         height: 100vh;
+    }
+
+    #groupName {
+        font-size: 26px;
+        font-weight: bold;
+        margin-bottom: 20px;
+        color: #4e6ef2;
+        text-shadow: 0px 0px 5px rgba(78,110,242,0.4);
     }
 
     .game {
@@ -63,12 +72,10 @@
         transform: rotateY(180deg);
     }
 
-    /* Match (correct) */
     .correct .back {
         border: 3px solid #18c469;
     }
 
-    /* Wrong pair */
     .wrong .back {
         border: 3px solid #e63946;
     }
@@ -76,9 +83,17 @@
 </head>
 <body>
 
+<!-- ⭐ Group name visible on screen -->
+<h2 id="groupName">A GAME MADE BY : ROXAS,MAGALLANES, DENIEGA</h2>
+
 <div class="game" id="game"></div>
 
 <script>
+// ⭐ Popup shows group name when page loads
+window.onload = function() {
+    alert("Memory Game made by: GROUP NAMIN");
+};
+
 const emojis = ["🍎","🍎","🍌","🍌","🍇","🍇","🍒","🍒"];
 emojis.sort(() => Math.random() - 0.5);
 
@@ -86,7 +101,6 @@ const game = document.getElementById("game");
 let flippedCards = [];
 let lock = false;
 
-// Create cards
 emojis.forEach((emoji) => {
     const card = document.createElement("div");
     card.className = "card";
@@ -115,13 +129,11 @@ function checkMatch() {
     const [c1, c2] = flippedCards;
 
     if (c1.emoji === c2.emoji) {
-        // Correct
         c1.card.classList.add("correct");
         c2.card.classList.add("correct");
         flippedCards = [];
         lock = false;
     } else {
-        // Wrong
         c1.card.classList.add("wrong");
         c2.card.classList.add("wrong");
 
